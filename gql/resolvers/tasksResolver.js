@@ -22,7 +22,7 @@ export default {
           }
           console.error(e)
         }
-      } else {
+      } else if (Object.keys(args).length > 1) {
         try {
           const field = Object.keys(args)[0]
           const res = context.tasksParser((await context.esClient.search({
@@ -38,6 +38,23 @@ export default {
               }
             }
           })))
+          return {
+            total: res.total,
+            tasks: res.data
+          }
+        } catch(e) {
+          console.error(e)
+          return {
+            message: 'Server Error'
+          }
+        }
+      } else {
+        try {
+          const res = context.tasksParser(await context.esClient.search({
+            index: process.env.ELASTIC_SEARCH_INDEX,
+            from: args.page,
+            size: QUANTITY_PER_PAGE,
+          }))
           return {
             total: res.total,
             tasks: res.data
@@ -74,7 +91,7 @@ export default {
     },
     removeTask: async (obj, args, context, info) => {
       try {
-        await context.esClient.delete({ id: args.id, index: process.env.ELASTIC_SEARCH_INDEX })
+        await context.esClient.delete({ id: args.id, index: process.env.ELASTIC_SEARCH_INDEX, refresh: true })
         return { message: 'OK' }
       } catch(e) {
         console.error(e)
